@@ -29,7 +29,7 @@ def define_G(input_nc, output_nc, ngf, norm='batch', use_dropout=False, gpu_ids=
     norm_layer = get_norm_layer(norm_type=norm)
 
     if use_gpu:
-        assert(torch.cuda.is_available())
+        assert(torch.cuda.is_available()) #没有gpu会报错
 
     netG = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9, gpu_ids=gpu_ids)
 
@@ -57,7 +57,7 @@ def define_D(input_nc, ndf, norm='batch', use_sigmoid=False, gpu_ids=[]):
 
 def print_network(net):
     num_params = 0
-    for param in net.parameters():
+    for param in net.parameters():  #不能直接 num_params=len（net.parameters()）？
         num_params += param.numel()
     print(net)
     print('Total number of parameters: %d' % num_params)
