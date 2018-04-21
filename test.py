@@ -29,7 +29,7 @@ transform = transforms.Compose(transform_list)
 for image_name in image_filenames:
     img = load_img(image_dir + image_name)
     img = transform(img)
-    input = Variable(img, volatile=True).view(1, -1, 256, 256)
+    input = Variable(img, volatile=True).view(1, -1, 256, 256) .  #volatile=True, 不计算backprop
 
     if opt.cuda:
         netG = netG.cuda()
