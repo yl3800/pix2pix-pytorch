@@ -35,7 +35,7 @@ print(opt)
 if opt.cuda and not torch.cuda.is_available():
     raise Exception("No GPU found, please run without --cuda")
 
-cudnn.benchmark = True
+cudnn.benchmark = True # 加速
 
 torch.manual_seed(opt.seed)
 if opt.cuda:
@@ -65,7 +65,7 @@ print_network(netG)
 print_network(netD)
 print('-----------------------------------------------')
 
-real_a = torch.FloatTensor(opt.batchSize, opt.input_nc, 256, 256)
+real_a = torch.FloatTensor(opt.batchSize, opt.input_nc, 256, 256)#transform in to tensor
 real_b = torch.FloatTensor(opt.batchSize, opt.output_nc, 256, 256)
 
 if opt.cuda:
@@ -82,44 +82,44 @@ real_b = Variable(real_b)
 
 
 def train(epoch):
-    for iteration, batch in enumerate(training_data_loader, 1):
+    for iteration, batch in enumerate(training_data_loader, 1):#start at 1
         # forward
-        real_a_cpu, real_b_cpu = batch[0], batch[1]
-        real_a.data.resize_(real_a_cpu.size()).copy_(real_a_cpu)
+        real_a_cpu, real_b_cpu = batch[0], batch[1]  # a is contour，b is actual image
+        real_a.data.resize_(real_a_cpu.size()).copy_(real_a_cpu)#  real_a _cpu 和 real_a size 不一样？
         real_b.data.resize_(real_b_cpu.size()).copy_(real_b_cpu)
         fake_b = netG(real_a)
 
         ############################
-        # (1) Update D network: maximize log(D(x,y)) + log(1 - D(x,G(x)))
+        # (1) Update D network: maximize log(D(x,y)) + log(1 - D(x,G(x)))## loss= -log(D(x,y)) + log(D(x,G(x)))
         ###########################
 
         optimizerD.zero_grad()
         
         # train with fake
         fake_ab = torch.cat((real_a, fake_b), 1)
-        pred_fake = netD.forward(fake_ab.detach())
-        loss_d_fake = criterionGAN(pred_fake, False)
-
-        # train with real
+        pred_fake = netD.forward(fake_ab.detach())# 只更新D的参数，阻止更新G，detach：不backprop，（把 fake_ab 看成整体）
+        loss_d_fake = criterionGAN(pred_fake, False) #pred_fake 越小，loss越少
+       
+        # train with real 
         real_ab = torch.cat((real_a, real_b), 1)
-        pred_real = netD.forward(real_ab)
+        pred_real = netD.forward(real_ab)    #pred-real 越大 loss越小
         loss_d_real = criterionGAN(pred_real, True)
         
         # Combined loss
         loss_d = (loss_d_fake + loss_d_real) * 0.5
-
+        
         loss_d.backward()
-       
+        
         optimizerD.step()
-
+        
         ############################
-        # (2) Update G network: maximize log(D(x,G(x))) + L1(y,G(x))
+        # (2) Update G network: maximize log(D(x,G(x))) + L1(y,G(x))##       loss=-log(D(x,G(x))) + L1(y,G(x)), try to min this
         ##########################
         optimizerG.zero_grad()
         # First, G(A) should fake the discriminator
         fake_ab = torch.cat((real_a, fake_b), 1)
         pred_fake = netD.forward(fake_ab)
-        loss_g_gan = criterionGAN(pred_fake, True)
+        loss_g_gan = criterionGAN(pred_fake, True) #pred_fake 越大，loss越小
 
          # Second, G(A) = B
         loss_g_l1 = criterionL1(fake_b, real_b) * opt.lamb
@@ -131,7 +131,7 @@ def train(epoch):
         optimizerG.step()
 
         print("===> Epoch[{}]({}/{}): Loss_D: {:.4f} Loss_G: {:.4f}".format(
-            epoch, iteration, len(training_data_loader), loss_d.data[0], loss_g.data[0]))
+            epoch, iteration, len(training_data_loader), loss_d.data[0], loss_g.data[0]))# loss.data[0]
 
 
 def test():
@@ -143,8 +143,8 @@ def test():
             target = target.cuda()
 
         prediction = netG(input)
-        mse = criterionMSE(prediction, target)
-        psnr = 10 * log10(1 / mse.data[0])
+        mse = criterionMSE(prediction, target)       #往下4行都不需要
+        psnr = 10 * log10(1 / mse.data[0])   
         avg_psnr += psnr
     print("===> Avg. PSNR: {:.4f} dB".format(avg_psnr / len(testing_data_loader)))
 
