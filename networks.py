@@ -29,7 +29,7 @@ def define_G(input_nc, output_nc, ngf, norm='batch', use_dropout=False, gpu_ids=
     norm_layer = get_norm_layer(norm_type=norm)
 
     if use_gpu:
-        assert(torch.cuda.is_available()) #没有gpu会报错
+        assert(torch.cuda.is_available()) #
 
     netG = ResnetGenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9, gpu_ids=gpu_ids)
 
@@ -64,12 +64,13 @@ def print_network(net):
 
 
 # Defines the GAN loss which uses either LSGAN or the regular GAN.
+ 
 class GANLoss(nn.Module):
     def __init__(self, use_lsgan=True, target_real_label=1.0, target_fake_label=0.0,
                  tensor=torch.FloatTensor):
         super(GANLoss, self).__init__()
-        self.real_label = target_real_label
-        self.fake_label = target_fake_label
+        self.real_label = target_real_label # 1.0
+        self.fake_label = target_fake_label # 0.0
         self.real_label_var = None
         self.fake_label_var = None
         self.Tensor = tensor
@@ -80,7 +81,7 @@ class GANLoss(nn.Module):
 
     def get_target_tensor(self, input, target_is_real):
         target_tensor = None
-        if target_is_real:
+        if target_is_real:  # if target_is_real create_label = 1
             create_label = ((self.real_label_var is None) or
                             (self.real_label_var.numel() != input.numel()))
             if create_label:
@@ -96,9 +97,9 @@ class GANLoss(nn.Module):
             target_tensor = self.fake_label_var
         return target_tensor
 
-    def __call__(self, input, target_is_real):
+    def __call__(self, input, target_is_real):      #loss_d_fake = criterionGAN(pred_fake, False)
         target_tensor = self.get_target_tensor(input, target_is_real)
-        return self.loss(input, target_tensor.cuda())
+        return self.loss(input, target_tensor.cuda())# input = fake_ab/real_ab ,target_tensor=
 
 
 # Defines the generator that consists of Resnet blocks between a few
@@ -112,14 +113,14 @@ class ResnetGenerator(nn.Module):
         self.ngf = ngf
         self.gpu_ids = gpu_ids
 
-        model = [nn.Conv2d(input_nc, ngf, kernel_size=7, padding=3),
+        model = [nn.Conv2d(input_nc, ngf, kernel_size=7, padding=3),   #3x256x256->64x
                  norm_layer(ngf, affine=True),
                  nn.ReLU(True)]
 
         n_downsampling = 2
         for i in range(n_downsampling):
             mult = 2**i
-            model += [nn.Conv2d(ngf * mult, ngf * mult * 2, kernel_size=3,
+            model += [nn.Conv2d(ngf * mult, ngf * mult * 2, kernel_size=3, #64
                                 stride=2, padding=1),
                       norm_layer(ngf * mult * 2, affine=True),
                       nn.ReLU(True)]
@@ -142,7 +143,7 @@ class ResnetGenerator(nn.Module):
         self.model = nn.Sequential(*model)
 
     def forward(self, input):
-        if self.gpu_ids and isinstance(input.data, torch.cuda.FloatTensor):
+        if len(self.gpu_ids) and isinstance(input.data, torch.cuda.FloatTensor):  #GPU
             return nn.parallel.data_parallel(self.model, input, self.gpu_ids)
         else:
             return self.model(input)
@@ -175,7 +176,7 @@ class ResnetBlock(nn.Module):
         return out
 
 
-# Defines the PatchGAN discriminator.
+# Defines the PatchGAN discriminator
 class NLayerDiscriminator(nn.Module):
     def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, use_sigmoid=False, gpu_ids=[]):
         super(NLayerDiscriminator, self).__init__()
@@ -192,7 +193,12 @@ class NLayerDiscriminator(nn.Module):
         nf_mult_prev = 1
         for n in range(1, n_layers):
             nf_mult_prev = nf_mult
-            nf_mult = min(2**n, 8)
+            nf_mult = min(2**n, 8)   # 1，2，4，8，8
+
+
+
+
+
             sequence += [
                 nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=2,
                           padding=padw), norm_layer(ndf * nf_mult,
