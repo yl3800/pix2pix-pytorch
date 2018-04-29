@@ -43,14 +43,14 @@ if opt.cuda:
 
 print('===> Loading datasets')
 root_path = "dataset/"
-train_set = get_training_set(root_path + opt.dataset)
+train_set = get_training_set(root_path + opt.dataset)#objectlize
 test_set = get_test_set(root_path + opt.dataset)
 training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=True)
 testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=opt.testBatchSize, shuffle=False)
 
 print('===> Building model')
 netG = define_G(opt.input_nc, opt.output_nc, opt.ngf, 'batch', False, [0])
-netD = define_D(opt.input_nc + opt.output_nc, opt.ndf, 'batch', False, [0])
+netD = define_D(opt.input_nc + opt.output_nc, opt.ndf, 'batch', False, [0])#opt.input_nc + opt.output_nc, 因为cat(   ,1)
 
 criterionGAN = GANLoss()
 criterionL1 = nn.L1Loss()
@@ -65,7 +65,7 @@ print_network(netG)
 print_network(netD)
 print('-----------------------------------------------')
 
-real_a = torch.FloatTensor(opt.batchSize, opt.input_nc, 256, 256)#transform in to tensor
+real_a = torch.FloatTensor(opt.batchSize, opt.input_nc, 256, 256)#transform input to tensor
 real_b = torch.FloatTensor(opt.batchSize, opt.output_nc, 256, 256)
 
 if opt.cuda:
@@ -73,7 +73,7 @@ if opt.cuda:
     netG = netG.cuda()
     criterionGAN = criterionGAN.cuda()
     criterionL1 = criterionL1.cuda()
-    criterionMSE = criterionMSE.cuda()
+    criterionMSE = criterionMSE.cuda()#一个检测 test 生成结果的标准，我不需要 
     real_a = real_a.cuda()
     real_b = real_b.cuda()
 
@@ -97,7 +97,7 @@ def train(epoch):
         
         # train with fake
         fake_ab = torch.cat((real_a, fake_b), 1)
-        pred_fake = netD.forward(fake_ab.detach())# 只更新D的参数，阻止更新G，detach：不backprop，（把 fake_ab 看成整体）
+        pred_fake = netD.forward(fake_ab.detach())# 只更新D的参数，阻止更新G，detach：detach fake_ab from network， 不backprop，（把 fake_ab 看成整体）
         loss_d_fake = criterionGAN(pred_fake, False) #pred_fake 越小，loss越少
        
         # train with real 
@@ -110,7 +110,7 @@ def train(epoch):
         
         loss_d.backward()
         
-        optimizerD.step()
+        optimizerD.step()# 只更新D网络
         
         ############################
         # (2) Update G network: maximize log(D(x,G(x))) + L1(y,G(x))##       loss=-log(D(x,G(x))) + L1(y,G(x)), try to min this
@@ -121,7 +121,7 @@ def train(epoch):
         pred_fake = netD.forward(fake_ab)
         loss_g_gan = criterionGAN(pred_fake, True) #pred_fake 越大，loss越小
 
-         # Second, G(A) = B
+        # Second, G(A) = B
         loss_g_l1 = criterionL1(fake_b, real_b) * opt.lamb
         
         loss_g = loss_g_gan + loss_g_l1
@@ -154,7 +154,7 @@ def checkpoint(epoch):
         os.mkdir("checkpoint")
     if not os.path.exists(os.path.join("checkpoint", opt.dataset)):
         os.mkdir(os.path.join("checkpoint", opt.dataset))
-    net_g_model_out_path = "checkpoint/{}/netG_model_epoch_{}.pth".format(opt.dataset, epoch)
+    net_g_model_out_path = "checkpoint/{}/netG_model_epoch_{}.pth".format(Loss_D, epoch)
     net_d_model_out_path = "checkpoint/{}/netD_model_epoch_{}.pth".format(opt.dataset, epoch)
     torch.save(netG, net_g_model_out_path)
     torch.save(netD, net_d_model_out_path)
